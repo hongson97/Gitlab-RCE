@@ -6,10 +6,61 @@
 
 ## II) Phân tích
 
-  Khi bắt đầu bắt tay vào phân tích lỗi này. Mình chỉ có được 1 số thông tin quý giá của [lyy289065406](https://github.com/lyy289065406/CVE-2021-22192) giúp mình có thể hiểu được vấn đế cốt lõi trong bug này.
-  Ta thấy dường như đang là lỗi ở phía gem kramdown (<= 2.3.0), vậy nên mình bắt đầu tìm hiểu tới kramdown trước.
+  Khi bắt đầu bắt tay vào phân tích lỗi này. Mình chỉ có được 1 số thông tin quý giá của [lyy289065406](https://github.com/lyy289065406/CVE-2021-22192) giúp mình có thể hiểu được vấn đế cốt lõi trong bug này ( hiện giờ thì nó đã update full exploit rồi). Vậy nên mình sẽ phân tích lỗ hổng này dựa trên quá trình mình thực hiện chứ không đơn thuần là dựa vào PoC đã có nhé.
+ 
+ Nhìn vào bản patch tạm thời của [gitlab](https://gitlab.com/gitlab-org/gitlab/-/commit/179329b5c3c118924fb242dc449d06b4ed6ccb66) ta thấy dường như đang là lỗi ở phía Kramdown (<= 2.3.0) - một module mà gitlab sử dụng để render markdown. Và một điều hay ho nữa, là root cause của lỗi này đã từng được khai thác trên Github Pages và được định danh là CVE-2020-10518. Lỗ hổng này cho phép bạn thực thi một đoạn code *ruby* trên server.
+ 
+ Đến đây, mình bắt đầu đặt câu hỏi: **Có khi nào nó mang lỗi này từ Github Pages qua exploit Gitlab, vì Gitlab cũng có tính năng Gitlab Pages?** và không chần chừ nữa, mình bắt đầu tiến hình phân tích lỗ hổng CVE-2020-10518.
   
-### 1. Kramdown
+  Qua tìm kiếm, lỗ hổng này đã được phân tích bởi chính tác giả. Tuy nhiên, mình cũng sẽ phân tích lại vì nếu dựa vào blog của tác giả, khi các bạn reproduce lỗi này sẽ gặp rất nhiều vấn đề mà tác giải không chỉ ra trong blog. 
+Bài phân tích gốc ở đây [GitHub Pages - Multiple RCEs via insecure Kramdown configuration - $25,000 Bounty](https://devcraft.io/2020/10/20/github-pages-multiple-rces-via-kramdown-config.html)
+
+
+### 1. CVE-2020-10518
+
+#### Jekyll 
+Github Pages là một tính năng triển khai static web có trên Github. Các bạn có thể tự tạo các trang web tĩnh và deploy chúng trên server của Github. Github Pages cũng hỗ trợ bạn triển khai các static web dựa trên các SSG (Static Site Generators), ví dụ như Jekyll. Bằng cách bạn push nguyên project jekyll lên githubs là cấu hình file config.yml của Jekyll, GitHub Pages sẽ tự động build và generate các file HTML cho bạn. 
+
+Okie, đến đây các bạn hãy tiến hành cài đặt và tập sử dụng [Jekyll](https://jekyllrb.com/) như trong document.
+
+*Recommemded: nên cài đặt Jekyll 3.8.7*
+
+```
+# Install jekyll with version 3.8.7
+gem install jekyll -v 3.8.7
+
+# Tạo blog mới với jekyll
+jekyll new githubblog2
+
+# Start server 
+bundle exec jekyll serve
+```
+
+Nếu để ý trong quá trình tạo project mới, jekyll cũng show ra các gói **gem** được sử dụng, trong đó có *kramdown 1.17.0*
+
+```
+➜  githubblog2 tree
+.
+├── 404.html
+├── Gemfile
+├── Gemfile.lock
+├── _config.yml
+├── _posts
+│   └── 2021-04-06-welcome-to-jekyll.markdown
+├── about.markdown
+├── index.markdown
+├── index.md
+
+```
+Trong folder *githubblog2*, các bạn cần lưu ý các file quan trọng sau:
+
+- Gemfile: File khai báo các thư viên, denpendence phụ thuộc dùng cho project.
+- config.xml: File cấu hình jekyll, khi bạn build hay start server jekyll se su dung cac cau hinh ban khai bao trong file nay.
+
+Như bài phân tích của tác giả, bạn chỉ cần sử file cấu hình với payload:
+```
+
+```
 
 Ta có thể tiến hành kiểm tra bản [patch](https://github.com/gettalong/kramdown/commit/d6a1cbcb2caa2f8a70927f176070d126b2422760#diff-752a8043ae0220ab8bb4d8a91b3a623ad6775dd2ca958041cda185bc9f58d44a) của kramdown, và ta thấy sự khác biệt ở hàm `formatter_class` tại module `Kramdown::Converter::SyntaxHighlighter::Rouge`
 
